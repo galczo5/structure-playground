@@ -1,10 +1,14 @@
 import { Component } from '@angular/core';
+import {DATA, StructureElement} from '../data';
 
 @Component({
   selector: 'app-root',
-  templateUrl: './app.component.html',
-  styleUrls: ['./app.component.css']
+  template: `
+    <app-structure [element]="structure"></app-structure>
+  `
 })
 export class AppComponent {
-  title = 'structure-playground';
+
+  structure: StructureElement = DATA;
+
 }
