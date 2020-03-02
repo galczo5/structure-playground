@@ -1,4 +1,4 @@
-import {enableProdMode} from '@angular/core';
+import {enableProdMode, InjectionToken} from '@angular/core';
 import { platformBrowserDynamic } from '@angular/platform-browser-dynamic';
 
 import { AppModule } from './app/app.module';
@@ -10,11 +10,14 @@ if (environment.production) {
   enableProdMode();
 }
 
-const noop = true;
+export const COMPONENT_LOGS = new InjectionToken<boolean>('COMPONENT_LOGS');
 
-platformBrowserDynamic()
+const noop = location.hash.indexOf('noop') !== -1;
+
+platformBrowserDynamic([
+    { provide: COMPONENT_LOGS, useValue: true }
+  ])
   .bootstrapModule(AppModule, {
-    //ngZone: noop ? new NoopZone() : new NgZoneWithLogs()
-    ngZone: 'noop'
+    ngZone: noop ? new NoopZone() : new NgZoneWithLogs()
   })
   .catch(err => console.error(err));

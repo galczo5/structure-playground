@@ -1,44 +1,59 @@
-import {EventEmitter, NgZone} from '@angular/core';
+import {EventEmitter, Inject, NgZone} from '@angular/core';
+
+function noop() {}
 
 export class NgZoneWithLogs extends NgZone {
 
-  readonly ngZone: NgZone;
-
-  constructor() {
-    const conf = {
+  constructor(private logs: boolean = true) {
+    super({
       enableLongStackTrace: false,
       shouldCoalesceEventChangeDetection: false
-    };
-
-    super(conf);
-    this.ngZone = new NgZone(conf)
+    });
   }
 
   readonly hasPendingMacrotasks: boolean;
   readonly hasPendingMicrotasks: boolean;
   readonly isStable: boolean;
-  readonly onUnstable: EventEmitter<any>;
-  readonly onMicrotaskEmpty: EventEmitter<any>;
-  readonly onStable: EventEmitter<any>;
-  readonly onError: EventEmitter<any>;
+  readonly onUnstable: EventEmitter<any> = new EventEmitter<any>();
+  readonly onMicrotaskEmpty: EventEmitter<any> = new EventEmitter<any>();
+  readonly onStable: EventEmitter<any> = new EventEmitter<any>();
+  readonly onError: EventEmitter<any> = new EventEmitter<any>();
 
   run<T>(fn: (...args: any[]) => T, applyThis?: any, applyArgs?: any[]): T {
-    console.log('ZONE: run', fn, applyThis, applyArgs);
-    return this.ngZone.run(fn, applyThis, applyArgs);
+    this.log('run', fn, applyThis, applyArgs);
+    return (this as any)._inner.run(fn, applyThis, applyArgs);
   }
 
   runTask<T>(fn: (...args: any[]) => T, applyThis?: any, applyArgs?: any[], name?: string): T {
-    console.log('ZONE: runTask', fn, applyThis, applyArgs);
-    return this.ngZone.run(fn, applyThis, applyArgs);
+    this.log('runTask', fn, applyThis, applyArgs);
+    const zone = (this as any)._inner;
+    const task = zone.scheduleEventTask('NgZoneEvent: ' + name, fn, {}, noop, noop);
+    try {
+      return zone.runTask(task, applyThis, applyArgs) as T;
+    } finally {
+      zone.cancelTask(task);
+    }
   }
 
   runGuarded<T>(fn: (...args: any[]) => T, applyThis?: any, applyArgs?: any[]): T {
-    console.log('ZONE: runGuarded', fn, applyThis, applyArgs);
-    return this.ngZone.run(fn, applyThis, applyArgs);
+    this.log('runGuarded', fn, applyThis, applyArgs);
+    return (this as any)._inner.run(fn, applyThis, applyArgs);
   }
 
   runOutsideAngular<T>(fn: (...args: any[]) => T): T {
-    console.log('ZONE: runOutsideAngular', fn);
-    return this.ngZone.run(fn);
+    this.log('runOutsideAngular', fn);
+    return (this as any)._outer.run(fn);
+  }
+
+  log(msg: string, ...args): void {
+    if (!this.logs) {
+      return;
+    }
+
+    console.log(
+      '%cZONE: ' + msg,
+      'padding: 2px 4px; border: 2px solid blue; background: blue; color: white; border-radius: 4px;',
+      ...args
+    );
   }
 }

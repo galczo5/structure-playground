@@ -1,7 +1,7 @@
-import {EventEmitter, NgZone} from '@angular/core';
+import {EventEmitter, Inject, NgZone} from '@angular/core';
 
 export class NoopZone extends NgZone {
-  constructor() {
+  constructor(private logs: boolean = true) {
     super({
       enableLongStackTrace: false,
       shouldCoalesceEventChangeDetection: false
@@ -17,22 +17,34 @@ export class NoopZone extends NgZone {
   readonly onError: EventEmitter<any>;
 
   run<T>(fn: (...args: any[]) => T, applyThis?: any, applyArgs?: any[]): T {
-    console.log('ZONE: run', fn, applyThis, applyArgs);
+    this.log('run', fn, applyThis, applyArgs);
     return fn.apply(applyThis, applyArgs);
   }
 
   runTask<T>(fn: (...args: any[]) => T, applyThis?: any, applyArgs?: any[], name?: string): T {
-    console.log('ZONE: runTask', fn, applyThis, applyArgs);
+    this.log('runTask', fn, applyThis, applyArgs);
     return fn.apply(applyThis, applyArgs);
   }
 
   runGuarded<T>(fn: (...args: any[]) => T, applyThis?: any, applyArgs?: any[]): T {
-    console.log('ZONE: runGuarded', fn, applyThis, applyArgs);
+    this.log('runGuarded', fn, applyThis, applyArgs);
     return fn.apply(applyThis, applyArgs);
   }
 
   runOutsideAngular<T>(fn: (...args: any[]) => T): T {
-    console.log('ZONE: runOutsideAngular', fn);
+    this.log('runOutsideAngular', fn);
     return fn();
+  }
+
+  log(msg: string, ...args): void {
+    if (!this.logs) {
+      return;
+    }
+
+    console.log(
+      '%cZONE: ' + msg,
+      'padding: 2px 4px; border: 2px solid red; background: red; color: white; border-radius: 4px;',
+      ...args
+    );
   }
 }

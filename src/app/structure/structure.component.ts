@@ -1,142 +1,103 @@
 import {
-  AfterContentInit,
-  AfterViewInit,
+  AfterContentChecked,
+  AfterContentInit, AfterViewChecked,
+  AfterViewInit, ApplicationRef,
   ChangeDetectionStrategy, ChangeDetectorRef,
   Component,
-  DoCheck, ElementRef,
-  Input,
+  DoCheck, ElementRef, Inject,
+  Input, NgZone,
   OnChanges,
   OnInit, Renderer2,
-  SimpleChanges, ViewChild
+  SimpleChanges, ViewChild, ViewRef
 } from '@angular/core';
 import {StructureElement} from '../../data';
+import {ViewportScroller} from '@angular/common';
+import {BackgroundService} from '../background.service';
+import {COMPONENT_LOGS} from '../../main';
 
 @Component({
   selector: 'app-structure',
   changeDetection: ChangeDetectionStrategy.Default,
   template: `
-    <div class="element"
-         [style.background]="color">
-      <div class="name">
+    <div class="element" [style.background]="color">
+      <div class="name"
+           [class.marked]="marked">
         <button>{{ element.name }}</button>
+        <hr style="border: 1px dashed black; margin-bottom: 15px;">
         <button (click)="click()">Click</button>
         <button (click)="timeout()">Timeout</button>
+        <button (click)="tick()">Tick</button>
+        <button (click)="detectChanges()">Detect changes</button>
+        <button (click)="ngZoneRun()">ngZoneRun</button>
       </div>
       <div class="children">
         <app-structure *ngFor="let child of getChildren()" [element]="child"></app-structure>
       </div>
     </div>
   `,
-  styles: [`
-    :host {
-      flex-grow: 1;
-    }
-
-    .element {
-      width: 100%;
-      height: 100%;
-      display: flex;
-      flex-grow: 1;
-      flex-direction: column;
-      border: 2px solid black;
-      padding: 10px;
-    }
-
-    .name {
-      text-align: center;
-      width: 100%;
-      margin-bottom: 10px;
-    }
-
-    .name button {
-      display: inline-block;
-      padding: 5px 10px;
-      background: white;
-      border-radius: 4px;
-      border: 2px solid black;
-      color: black;
-    }
-
-    .name button + button {
-      margin-left: 10px;
-    }
-
-    .children {
-      flex-grow: 1;
-      display: flex;
-      flex-direction: row;
-    }
-
-    .children app-structure + app-structure {
-      margin-left: 10px;
-    }
-  `]
+  styleUrls: ['./structure.component.css']
 })
-export class StructureComponent implements OnChanges, OnInit, AfterContentInit, AfterViewInit, DoCheck {
-
-  @ViewChild('name', { read: ElementRef, static: true })
-  nameElement: ElementRef;
+// tslint:disable-next-line:max-line-length
+export class StructureComponent implements OnChanges, OnInit, AfterContentInit, AfterContentChecked, AfterViewInit, AfterViewChecked, DoCheck {
 
   @Input()
   element: StructureElement;
 
   color: string;
 
-  constructor(private readonly changeDetectorRef: ChangeDetectorRef) {
+  marked = false;
+
+  constructor(private readonly changeDetectorRef: ChangeDetectorRef,
+              private readonly applicationRef: ApplicationRef,
+              private readonly backgroundService: BackgroundService,
+              private readonly ngZone: NgZone,
+              @Inject(COMPONENT_LOGS) private readonly logs: boolean) {
+    this.color = this.backgroundService.getColor();
   }
 
-  ngOnInit(): void {
-    this.log('ngOnInit');
-  }
-
-  ngAfterContentInit(): void {
-    this.log('ngAfterContentInit');
-  }
-
-  ngAfterViewInit(): void {
-    this.log('ngAfterViewInit');
-  }
-
-  ngDoCheck(): void {
-    this.log('ngDoCheck');
-  }
-
-  ngOnChanges(changes: SimpleChanges): void {
-    if (changes.element.firstChange) {
-      this.color = this.getColor();
-    }
-
-    this.log('ngOnChanges');
-  }
+  ngOnChanges(changes: SimpleChanges): void { this.log('ngOnChanges'); }
+  ngOnInit(): void { this.log('ngOnInit'); }
+  ngAfterContentInit(): void { this.log('ngAfterContentInit'); }
+  ngAfterContentChecked(): void { this.log('ngAfterContentChecked'); }
+  ngAfterViewInit(): void { this.log('ngAfterViewInit'); }
+  ngAfterViewChecked(): void { this.log('ngAfterViewChecked'); }
+  ngDoCheck(): void { this.log('ngDoCheck'); }
 
   click(): void {
     this.log('click');
-    // this.changeDetectorRef.detectChanges();
+    this.marked = !this.marked;
   }
 
   timeout(): void {
     setTimeout(() => {
       this.log('timeout');
-      // this.changeDetectorRef.detectChanges();
+      this.marked = !this.marked;
     });
   }
 
-  getColor(): string {
-    if (this.element.color && this.element.color !== 'random') {
-      return this.element.color;
-    }
+  tick(): void {
+    this.log('tick');
+    this.applicationRef.tick();
+  }
 
-    const R = Math.round(Math.random() * 255);
-    const G = Math.round(Math.random() * 255);
-    const B = Math.round(Math.random() * 255);
+  detectChanges(): void {
+    this.log('detectChanges');
+    this.changeDetectorRef.detectChanges();
+  }
 
-    return '#' + R.toString(16) + G.toString(16) + B.toString(16);
+  ngZoneRun(): void {
+    this.log('ngZoneRun');
+    this.ngZone.run(() => {});
   }
 
   log(log: string): void {
+    if (!this.logs) {
+      return;
+    }
+
     console.log(
       '%c' + this.element.name + ': ' + log,
-      'padding: 2px 4px; border: 2px solid ' + this.color
+      'padding: 2px 4px; border: 2px solid' + this.color + '; background: #F5F5F5; border-radius: 4px;'
     );
   }
 
